@@ -106,9 +106,13 @@ public class Board {
      */
     public boolean moveItem(int rowIndex, int colIndex, int moveBehaviorDirection, int steps)
             throws InvalidDirectionException, OutOfBoardException, EatObligationException {
+        // cannot only move alive pawn
+        if (isEmptyPlace(rowIndex, colIndex) || isDeadPawn(rowIndex, colIndex))
+            // we can throw an exception also
+            return false;
         boolean isNormalPawn = isNormalPawn(rowIndex, colIndex);
-        if (isNormalPawn) return moveNormalPawn(rowIndex, colIndex, moveBehaviorDirection);
-        else return moveQueenPawn(rowIndex, colIndex, moveBehaviorDirection, steps);
+        if (isNormalPawn) return moveAsNormalPawn(rowIndex, colIndex, moveBehaviorDirection);
+        else return moveAsQueenPawn(rowIndex, colIndex, moveBehaviorDirection, steps);
     }
 
     /**
@@ -119,8 +123,8 @@ public class Board {
      * @return <code>true</code> if turn of current player end i.e. swap to other player <br/>
      * <code>false</code> if move wasn't successful (ex.occupied case) or player is forced to continue his turn (such as enchained eating)
      */
-    private boolean moveQueenPawn(final int rowIndex, final int colIndex, int moveBehaviorDirection, int steps)
-            throws InvalidDirectionException, EatObligationException {
+    private boolean moveAsQueenPawn(final int rowIndex, final int colIndex, int moveBehaviorDirection, int steps)
+            throws InvalidDirectionException, EatObligationException, OutOfBoardException {
 
         // check if direction is allowed and throw exception if not
         checkDirectionIfAllowed(moveBehaviorDirection);
@@ -161,7 +165,14 @@ public class Board {
             int testNextColIndex = newColIndex + moveDcol;
             // break steps new location is out of boards, or it is not empty
             if (isLocationOutOfBoard(testNextRowIndex, testNextColIndex)) {
-                System.err.println("Place [" + testNextRowIndex + ", " + testNextColIndex + "] is out of the board!");
+                String errorMessage = "Place [" + testNextRowIndex + ", " + testNextColIndex + "] is out of the board!";
+                if (i == 0) {
+                    // step was first move => throw error
+                    throw new OutOfBoardException(errorMessage);
+                } else {
+                    // step is for cumulative move => log warning
+                    System.err.println(errorMessage);
+                }
                 break;
             }
             if (!isEmptyPlace(testNextRowIndex, testNextColIndex)) {
@@ -204,7 +215,7 @@ public class Board {
      * @return <code>true</code> if turn of current player end i.e. swap to other player <br/>
      * <code>false</code> if move wasn't successful (ex.occupied case) or player is forced to continue his turn (enchained eating)
      */
-    private boolean moveNormalPawn(int rowIndex, int colIndex, int moveBehaviorDirection)
+    private boolean moveAsNormalPawn(int rowIndex, int colIndex, int moveBehaviorDirection)
             throws OutOfBoardException, EatObligationException, InvalidDirectionException {
         // verify that direction is diagonal
         checkDirectionIfAllowed(moveBehaviorDirection);
@@ -247,7 +258,7 @@ public class Board {
             } else if (isOccupiedByOpponentPlayer(rowIndex, colIndex, newRowIndex, newColIndex)) {
                 // position is occupied by opponent player => try to attack
                 if (attackList.contains(new BoardLocation(newRowIndex, newColIndex))) {
-                    System.out.println("Opponent eaten at position [" + newRowIndex + ", " + colIndex + "] !");
+                    System.out.println("Opponent eaten at position [" + newRowIndex + ", " + newColIndex + "] !");
                     board[newRowIndex][newColIndex] = DEAD_PAWN;
                     board[rowIndex][colIndex] = EMPTY_PLACE;
                     // jump to next position over eaten Pawn
@@ -388,10 +399,15 @@ public class Board {
                 // break steps new location is out of boards
                 if (isLocationOutOfBoard(newRowIndex, newColIndex))
                     break;
-                if (isOccupiedByOpponentPlayer(rowIndex, colIndex, eatenRowIndex, eatenColIndex) && isEmptyPlace(newRowIndex, newColIndex)) {
-                    attackList.add(new BoardLocation(eatenRowIndex, eatenColIndex, direction));
-                    // player eat one pawn in each direction maximum in one turn
-                    // for chained attack he continues his turn managed by move functions
+                if (!isEmptyPlace(eatenRowIndex, eatenColIndex)) {
+                    // a blocking place encountered => we have 2 cases:
+                    // the pawn is opponent and can jump over it => we add enemy as possible attack and break the loop
+                    // otherwise the pawn is opponent but can't jump over it, a dead pawn, a teammate pawn => do nothing and break the loop.
+                    if (isOccupiedByOpponentPlayer(rowIndex, colIndex, eatenRowIndex, eatenColIndex) && isEmptyPlace(newRowIndex, newColIndex)) {
+                        attackList.add(new BoardLocation(eatenRowIndex, eatenColIndex, direction));
+                        // player eat one pawn in each direction maximum in one turn
+                        // for chained attack he continues his turn managed by move functions
+                    }
                     break;
                 }
             }
@@ -412,26 +428,54 @@ public class Board {
         board = new int[tailleBoard + 1][tailleBoard + 1];
     }
 
+    /**
+     * Specify if only one color exist on the board <br/>
+     *
+     * @return <code>true</code> Game is over and dominated by one color <br/>
+     * <code>false</code> Game isn't over and both color exist on board.
+     * In such case, to know wining color use {@link #doPawnsColorExist(boolean)}
+     */
     public boolean didGameOver() {
-        boolean whiteExist = false;
-        boolean blackExist = false;
+        boolean whiteExist = doPawnsColorExist(true);
+        boolean blackExist = doPawnsColorExist(false);
+        return !whiteExist || !blackExist;
+    }
+
+    /**
+     * Check if color specified in argument have any alive pawns on the board
+     *
+     * @param isWhiteColor <code>true</code> check for white color
+     *                     <code>false</code> check for black color
+     * @return <code>true</code>Pawn with specified color exist on the board<br/>
+     * <code>false</code> No pawns with specified color exist on the board
+     */
+    public boolean doPawnsColorExist(boolean isWhiteColor) {
+        boolean colorExist = false;
         for (int i = 0; i < board.length; i++) {
             for (int j = 0; j < board[i].length; j++) {
-                if (isWhitePion(i, j))
-                    whiteExist = true;
-                if (isBlackPion(i, j))
-                    blackExist = true;
+                if (isWhiteColor) {
+                    if (isWhitePion(i, j))
+                        colorExist = true;
+                } else {
+                    if (isBlackPion(i, j))
+                        colorExist = true;
+                }
             }
-            if (whiteExist && blackExist)
+            if (colorExist)
                 break;
         }
-        if (!whiteExist && blackExist) {
-            System.out.println("Black pawns win!");
+        return colorExist;
+    }
+
+    public String prettyPrintWinningColor() {
+        if (!didGameOver()) {
+            return "No wining colors, both color exist on map !";
         }
-        if (whiteExist && !blackExist) {
-            System.out.println("White pawns win!");
+        if (doPawnsColorExist(true)) {
+            return "White pawns win!";
+        }else {
+            return "Black pawns win!";
         }
-        return !whiteExist || !blackExist;
     }
 
     public boolean isOccupiedBySamePlayer(int row1, int col1, int row2, int col2) {
@@ -446,6 +490,10 @@ public class Board {
 
     public boolean isEmptyPlace(int rowIndex, int colIndex) {
         return board[rowIndex][colIndex] == EMPTY_PLACE;
+    }
+
+    public boolean isDeadPawn(int rowIndex, int colIndex) {
+        return board[rowIndex][colIndex] == DEAD_PAWN;
     }
 
     public boolean isWhitePion(int rowIndex, int colIndex) {
@@ -464,7 +512,7 @@ public class Board {
         return board[rowIndex][colIndex] == BLACK_PAWN || board[rowIndex][colIndex] == WHITE_PAWN;
     }
 
-    public String prettyPrintLegend() {
+    public static String prettyPrintLegend() {
         String st = "* Case vide => -" + "\n" +
                 "* Cadavre  => x" + "\n" +
                 "* Pion noir  => " + BLACK_PAWN + "\n" +

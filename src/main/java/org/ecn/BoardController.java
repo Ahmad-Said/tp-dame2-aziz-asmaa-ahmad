@@ -39,7 +39,7 @@ public class BoardController {
         System.out.println("Assigned black color to " + secondPlayerName);
         boolean whiteTurn = false;
 
-        System.out.println(board.prettyPrintLegend());
+        System.out.println(Board.prettyPrintLegend());
         while (!board.didGameOver()) {
             System.out.println("------------------------------------------------------");
             System.out.println("-------------------- Turn "
@@ -53,6 +53,7 @@ public class BoardController {
             whiteTurn = !whiteTurn;
         }
         System.out.println(board);
+        System.out.println(board.prettyPrintWinningColor());
     }
 
     public void playNextTurn(boolean isWhiteTurn) {
