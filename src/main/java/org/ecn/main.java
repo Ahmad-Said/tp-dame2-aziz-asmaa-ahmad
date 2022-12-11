@@ -2,8 +2,9 @@ package org.ecn;
 
 public class main {
     public static void main(String[] args) {
-        Board board = new Board(10);
+        Board board = new Board(InputIntegerUtils.getBoundedInteger(4, 14, "Enter Board size"));
+        BoardController boardController = new BoardController(board, "Player one", "Player two");
 
-        System.out.println(board);
+        boardController.startGame();
     }
 }

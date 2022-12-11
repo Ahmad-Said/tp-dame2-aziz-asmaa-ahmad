@@ -1,18 +1,47 @@
 package org.ecn;
 
 import lombok.Data;
+import lombok.NoArgsConstructor;
+import org.ecn.exp.EatObligationException;
+import org.ecn.exp.InvalidDirectionException;
+import org.ecn.exp.OutOfBoardException;
 
-import java.util.Arrays;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
- * Case vide => 0
- * Case occupe by black  => 1
- * dame black => 2
- * Case occupe by white => 3
- * dame white => 4
+ * For the simplicity of the project, integer are used to designate Pawns,
+ * otherwise create a class for each one with right inheritance
+ * Empty place => 0 printed as dash -
+ * Black pawn => 1
+ * Black queen => 2
+ * White pawn => 3
+ * White queen => 4
  */
 @Data
+@NoArgsConstructor
 public class Board {
+
+
+    public static final int EMPTY_PLACE = 0;
+    public static final int BLACK_PAWN = 1;
+    public static final int BLACK_QUEEN = 2;
+    public static final int WHITE_PAWN = 3;
+    public static final int WHITE_QUEEN = 4;
+
+    /**
+     * When queen eat multiple pawn with chain attack, eaten pawn are not considered empty until next turn
+     * check wiki <a href="https://fr.wikipedia.org/wiki/Dames#La_prise">Game eat rules</a>
+     */
+    public static final int DEAD_PAWN = -1;
+
+    /**
+     * Allowed direction are only diagonals
+     *
+     * @see MoveBehavior
+     */
+    public static final List<Integer> ALLOWED_DIRECTIONS = Collections.unmodifiableList(Arrays.asList(1, 3, 7, 9));
+
     private int[][] board;
 
     private int tailleBoard;
@@ -22,35 +51,433 @@ public class Board {
         initializeBoard();
     }
 
+    /**
+     * Initialize a board having size {@link #getTailleBoard()}
+     * Black pawn are placed on top, and white pawn are placed on bottom.
+     */
     private void initializeBoard() {
         board = new int[tailleBoard + 1][tailleBoard + 1];
+        // i = 0 and j = 0 are discarded to have x/y location same as counting from 1
+        // so we can iterate either on <= tailleBoard or on < board.length
         for (int i = 1; i < board.length; i++) {
             for (int j = 1; j < board[i].length; j++) {
                 if (i <= tailleBoard / 2 - 1 && i % 2 != j % 2) {
-                    board[i][j] = 1;
+                    board[i][j] = BLACK_PAWN;
                 }
                 if (i >= tailleBoard / 2 + 2 && i % 2 != j % 2) {
-                    board[i][j] = 3;
+                    board[i][j] = WHITE_PAWN;
                 }
             }
         }
     }
 
-    public String getLegend() {
-        StringBuilder st = new StringBuilder();
-        st.append("* Case vide => 0").append("\n");
-        st.append("* Case occupe by black  => 1").append("\n");
-        st.append("* dame black => 2").append("\n");
-        st.append("* Case occupe by white => 3").append("\n");
-        st.append("* dame white => 4").append("\n");
-        return st.toString();
+
+    /**
+     * The main function of playing the game, this function move an item at given position (rowIndex, colIndex)
+     * in given direction for x steps.
+     *
+     * <pre>
+     * While moving the item will eat opponent Pawn in its way, also it will log action happened in order.
+     *
+     * Game rules:
+     * <ol>
+     *     <li> If the new position is occupied by another pawn, move does not happen and turn remain with the player
+     *     </li>
+     *     <li> If the pawn has an obligation to eat then pawn cannot be moved other than this obligation,
+     *          otherwise a warning log is printed and turn remain with the player till he chose the right new position
+     *     </li>
+     *     <li> If the pawn has multiple possibilities to eat then pawn cannot be moved other than one of these possibilities,
+     *          otherwise a warning log is printed and turn remain with the player till he chose the right new position
+     *     </li>
+     *     <li>
+     *         Any Pawn (normal or queen) that move and eat an opponent Pawn and still have the possibility to eat another pawn,
+     *         then the turn remain with the player till he finish all his eating chain.
+     *     </li>
+     * </ol>
+     * </pre>
+     *
+     * @param rowIndex              the target row item to move
+     * @param colIndex              the target column item to move
+     * @param moveBehaviorDirection direction as defined in class {@link MoveBehavior}
+     * @param steps                 number of steps to perform as Queen, if steps exceed the limit then maximum allowed steps is made.<br/>
+     *                              Note: this argument is discarded in case of normal pions
+     * @return <code>true</code> if turn of current player end i.e. swap to other player <br/>
+     * <code>false</code> if move wasn't successful (ex.occupied case) or player is forced to continue his turn (such as enchained eating)
+     */
+    public boolean moveItem(int rowIndex, int colIndex, int moveBehaviorDirection, int steps)
+            throws InvalidDirectionException, OutOfBoardException, EatObligationException {
+        boolean isNormalPawn = isNormalPawn(rowIndex, colIndex);
+        if (isNormalPawn) return moveNormalPawn(rowIndex, colIndex, moveBehaviorDirection);
+        else return moveQueenPawn(rowIndex, colIndex, moveBehaviorDirection, steps);
+    }
+
+    /**
+     * @param rowIndex              the target row item to move
+     * @param colIndex              the target column item to move
+     * @param moveBehaviorDirection direction as defined in class {@link MoveBehavior}
+     * @param steps                 number of steps to perform, if steps exceed the limit then maximum allowed steps is made
+     * @return <code>true</code> if turn of current player end i.e. swap to other player <br/>
+     * <code>false</code> if move wasn't successful (ex.occupied case) or player is forced to continue his turn (such as enchained eating)
+     */
+    private boolean moveQueenPawn(final int rowIndex, final int colIndex, int moveBehaviorDirection, int steps)
+            throws InvalidDirectionException, EatObligationException {
+
+        // check if direction is allowed and throw exception if not
+        checkDirectionIfAllowed(moveBehaviorDirection);
+
+        int moveDrow = MoveBehavior.DIRECTION_TO_DY.get(moveBehaviorDirection);
+        int moveDcol = MoveBehavior.DIRECTION_TO_DX.get(moveBehaviorDirection);
+        int pawnToMove = board[rowIndex][colIndex];
+        List<BoardLocation> attackList = getAttackPossibilitiesList(rowIndex, colIndex);
+        BoardLocation mustBeEaten = attackList.stream().filter(t -> t.deduceDirectionFromSource(rowIndex, colIndex) == moveBehaviorDirection)
+                .findFirst().orElse(null);
+
+        // if attack list isn't empty and direction does not lead to any of them => throw new eat exception
+        if (!attackList.isEmpty() && mustBeEaten == null) {
+            throw new EatObligationException("Eat obligation exist at positions " + attackList
+                    + "\nSuggested direction for attacks: " + attackList.stream().map(t -> t.deduceDirectionFromSource(rowIndex, colIndex)).collect(Collectors.toList()));
+        }
+
+        // eat obligation exist but steps cannot reach eaten item
+        if (mustBeEaten != null && steps <= mustBeEaten.distanceDiagonallyFrom(rowIndex)) {
+            throw new EatObligationException("Cannot reach eat obligation at position " + mustBeEaten
+                    + " - insuffisant steps " + steps
+                    + "\nSuggested minimum steps: " + (mustBeEaten.distanceDiagonallyFrom(rowIndex) + 1));
+        }
+        int remainingSteps = steps;
+        int newRowIndex = rowIndex;
+        int newColIndex = colIndex;
+        if (mustBeEaten != null) {
+            int minimumJumpedSteps = mustBeEaten.distanceDiagonallyFrom(rowIndex) + 1;
+            remainingSteps -= minimumJumpedSteps;
+            newRowIndex += minimumJumpedSteps * moveDrow;
+            newColIndex += minimumJumpedSteps * moveDcol;
+            System.out.println("Opponent eaten at position [" + mustBeEaten.row + ", " + mustBeEaten.col + "] !");
+            board[mustBeEaten.row][mustBeEaten.col] = DEAD_PAWN;
+        }
+        // walk with remaining steps as max as possible
+        for (int i = 0; i < remainingSteps; i++) {
+            int testNextRowIndex = newRowIndex + moveDrow;
+            int testNextColIndex = newColIndex + moveDcol;
+            // break steps new location is out of boards, or it is not empty
+            if (isLocationOutOfBoard(testNextRowIndex, testNextColIndex)) {
+                System.err.println("Place [" + testNextRowIndex + ", " + testNextColIndex + "] is out of the board!");
+                break;
+            }
+            if (!isEmptyPlace(testNextRowIndex, testNextColIndex)) {
+                System.err.println("Cannot step further than [" + testNextRowIndex + ", " + testNextColIndex + "] as position isn't available!");
+                break;
+            }
+            newRowIndex = testNextRowIndex;
+            newColIndex = testNextColIndex;
+            i--;
+            remainingSteps--;
+        }
+        if (remainingSteps != 0) {
+            System.err.println("=> Discarding remaining " + remainingSteps + " steps.");
+        }
+        System.out.println("Moved to new Place [" + newRowIndex + ", " + newColIndex + "]!");
+        board[rowIndex][colIndex] = EMPTY_PLACE;
+        board[newRowIndex][newColIndex] = pawnToMove;
+        // turn end if there is no more eat obligations at the new positions
+        boolean didTurnEnd = getAttackPossibilitiesList(newRowIndex, newColIndex).isEmpty();
+
+        if (didTurnEnd) {
+            // clear dead pawns if turn is ended
+            clearDeadPawns();
+        }
+        return didTurnEnd;
+    }
+
+    /**
+     * Handle move of normal Pawn in 2 cases:
+     * <ol>
+     *     <li>Move to empty place</li>
+     *     <li>Attack an enemy in adjacent place</li>
+     * </ol>
+     * <p>
+     * Effects taken in consideration: Promotion to Queen.
+     *
+     * @param rowIndex              the target row item to move
+     * @param colIndex              the target column item to move
+     * @param moveBehaviorDirection direction as defined in class {@link MoveBehavior}
+     * @return <code>true</code> if turn of current player end i.e. swap to other player <br/>
+     * <code>false</code> if move wasn't successful (ex.occupied case) or player is forced to continue his turn (enchained eating)
+     */
+    private boolean moveNormalPawn(int rowIndex, int colIndex, int moveBehaviorDirection)
+            throws OutOfBoardException, EatObligationException, InvalidDirectionException {
+        // verify that direction is diagonal
+        checkDirectionIfAllowed(moveBehaviorDirection);
+
+        int moveDrow = MoveBehavior.DIRECTION_TO_DY.get(moveBehaviorDirection);
+        int moveDcol = MoveBehavior.DIRECTION_TO_DX.get(moveBehaviorDirection);
+        int pawnToMove = board[rowIndex][colIndex];
+        int newRowIndex = rowIndex + moveDrow;
+        int newColIndex = colIndex + moveDcol;
+
+        // verify if new position is out of board
+        checkLocationIfOutOfBoard(newRowIndex, newColIndex);
+
+        List<BoardLocation> attackList = getAttackPossibilitiesList(rowIndex, colIndex);
+
+        // check eat obligation rule
+        if (!attackList.isEmpty() && !attackList.contains(new BoardLocation(newRowIndex, newColIndex))) {
+            // move was discarding eat obligation rule, turn remain with same player
+            // controller should help user avoiding this exception by suggesting pawns to eat
+            throw new EatObligationException("Eat obligation exist at positions " + attackList
+                    + "\nSuggested direction for attacks: " + attackList.stream().map(t -> t.deduceDirectionFromSource(rowIndex, colIndex)).collect(Collectors.toList()));
+        }
+
+
+        boolean doEndTurn = false;
+        if (isEmptyPlace(newRowIndex, newColIndex)) {
+            System.out.println("Moved to new Place [" + newRowIndex + ", " + newColIndex + "]!");
+            board[rowIndex][colIndex] = EMPTY_PLACE;
+            board[newRowIndex][newColIndex] = pawnToMove;
+            // successful move to empty place => turn go to next player
+            doEndTurn = true;
+        } else {
+            // position is occupied by same player => cannot move
+            if (isOccupiedBySamePlayer(rowIndex, colIndex, newRowIndex, newColIndex)) {
+                // note all print on System.err can be elevated as defined exception,
+                // but for the simplicity of project we print the error in the standard error output stream,
+                // and we keep the turn with same player
+                System.err.println("Place [" + newRowIndex + ", " + colIndex + "] already occupied!");
+                doEndTurn = false;
+            } else if (isOccupiedByOpponentPlayer(rowIndex, colIndex, newRowIndex, newColIndex)) {
+                // position is occupied by opponent player => try to attack
+                if (attackList.contains(new BoardLocation(newRowIndex, newColIndex))) {
+                    System.out.println("Opponent eaten at position [" + newRowIndex + ", " + colIndex + "] !");
+                    board[newRowIndex][newColIndex] = DEAD_PAWN;
+                    board[rowIndex][colIndex] = EMPTY_PLACE;
+                    // jump to next position over eaten Pawn
+                    newRowIndex += moveDrow;
+                    newColIndex += moveDcol;
+                    board[newRowIndex][newColIndex] = pawnToMove;
+                    // turn of player depend on attack chain: if no attack is possible then the turn go to next player
+                    // otherwise current player have to choose the next attack position. (controller should notify user of possible attacks)
+                    doEndTurn = getAttackPossibilitiesList(newRowIndex, newColIndex).isEmpty();
+                } else {
+                    // position is occupied by opponent player but cannot attack
+                    System.err.println("Cannot Attack [" + newRowIndex + ", " + colIndex + "] as next position isn't available!");
+                    doEndTurn = false;
+                }
+            }
+        }
+        if (doEndTurn) {
+            clearDeadPawns();
+            // promotion to Queen
+            if (isWhitePion(newRowIndex, newColIndex) && newRowIndex == 1) {
+                System.out.println("!!!!!!!!!!!!!!!!!!!!!!! White Queen !!!!!!!!!!!!!!!!!!!!!!!");
+                System.out.println("Congrats! Pawn promoted to White Queen!");
+                board[newRowIndex][newColIndex] = WHITE_QUEEN;
+            } else if (isBlackPion(newRowIndex, newColIndex) && newRowIndex == tailleBoard) {
+                System.out.println("!!!!!!!!!!!!!!!!!!!!!!! Black Queen !!!!!!!!!!!!!!!!!!!!!!!");
+                System.out.println("Congrats! Pawn promoted to Black Queen!");
+                board[newRowIndex][newColIndex] = BLACK_QUEEN;
+            }
+        }
+        return doEndTurn;
+    }
+
+
+    /**
+     * Check if direction is allowed
+     *
+     * @param directionBehavior the direction as defined in {@link MoveBehavior}
+     * @throws InvalidDirectionException if direction isn't allowed
+     * @see #ALLOWED_DIRECTIONS
+     */
+    public void checkDirectionIfAllowed(int directionBehavior) throws InvalidDirectionException {
+        if (!ALLOWED_DIRECTIONS.contains(directionBehavior)) {
+            throw new InvalidDirectionException("Direction [" + directionBehavior + "] is not allowed" +
+                    " - Move can only be in diagonal direction " + ALLOWED_DIRECTIONS);
+        }
+    }
+
+    /**
+     * Check if location at given row, column is a valid location
+     *
+     * @param rowIndex row location
+     * @param colIndex column location
+     * @throws OutOfBoardException if location is out of the board
+     */
+    public void checkLocationIfOutOfBoard(int rowIndex, int colIndex)
+            throws OutOfBoardException {
+        // check if position is out of the board
+        if (isLocationOutOfBoard(rowIndex, colIndex)) {
+            throw new OutOfBoardException("Place [" + rowIndex + ", " + colIndex + "] is out of the board!");
+        }
+    }
+
+    public boolean isLocationOutOfBoard(int rowIndex, int colIndex) {
+        return rowIndex < 1 || rowIndex > tailleBoard || colIndex < 1 || colIndex > tailleBoard;
+    }
+
+
+    /**
+     * Iterate over all pawns of given pawns color (white or black), and collect these pawns into list
+     *
+     * @param isUsingWhitePawns <code>true</code> to return list of white pawns <br/>
+     *                          <code>false</code> to return list of black pawns
+     * @return list of pawns matching color in argument
+     */
+    public List<BoardLocation> getPawnsList(boolean isUsingWhitePawns) {
+        List<BoardLocation> attackersList = new ArrayList<>();
+        for (int i = 0; i < board.length; i++) {
+            for (int j = 0; j < board[i].length; j++) {
+                if (isUsingWhitePawns) {
+                    if (isWhitePion(i, j))
+                        attackersList.add(new BoardLocation(i, j));
+                } else {
+                    if (isBlackPion(i, j))
+                        attackersList.add(new BoardLocation(i, j));
+                }
+            }
+        }
+        return attackersList;
+    }
+
+    /**
+     * Iterate over all pawns of given pawns color (white or black), and return the pawns that have possible attack.
+     * At the next turn one of these pawns must be chosen to play to ensure eat obligation rule
+     *
+     * @param isUsingWhitePawns <code>true</code> to return list of white pawns attackers <br/>
+     *                          <code>false</code> to return list of black pawns attackers
+     * @return list of pawns that can attack enemy pawns
+     */
+    public List<BoardLocation> getAttackersList(boolean isUsingWhitePawns) {
+        List<BoardLocation> attackersList = new ArrayList<>();
+        for (int i = 0; i < board.length; i++) {
+            for (int j = 0; j < board[i].length; j++) {
+                if (isUsingWhitePawns) {
+                    if (isWhitePion(i, j) && !getAttackPossibilitiesList(i, j).isEmpty())
+                        attackersList.add(new BoardLocation(i, j));
+                } else {
+                    if (isBlackPion(i, j) && !getAttackPossibilitiesList(i, j).isEmpty())
+                        attackersList.add(new BoardLocation(i, j));
+                }
+            }
+        }
+        return attackersList;
+    }
+
+    /**
+     * Calculate list of possible attack from given location
+     *
+     * @param rowIndex row location
+     * @param colIndex column location
+     * @return list of all opponent pawns that can be attacked from given location
+     */
+    public List<BoardLocation> getAttackPossibilitiesList(int rowIndex, int colIndex) {
+        // improve performance by skipping non pawns locations
+        if (!isWhitePion(rowIndex, colIndex) && !isBlackPion(rowIndex, colIndex))
+            return new ArrayList<>();
+
+        List<BoardLocation> attackList = new ArrayList<>();
+        for (Integer direction : ALLOWED_DIRECTIONS) {
+            int moveDrow = MoveBehavior.DIRECTION_TO_DY.get(direction);
+            int moveDcol = MoveBehavior.DIRECTION_TO_DX.get(direction);
+            int steps = isNormalPawn(rowIndex, colIndex) ? 1 : tailleBoard;
+            for (int i = 1; i <= steps; i++) {
+                int eatenRowIndex = rowIndex + i * moveDrow;
+                int eatenColIndex = colIndex + i * moveDcol;
+                // after eating an item, at least next position must be free to be occupied by attacker
+                int newRowIndex = eatenRowIndex + moveDrow;
+                int newColIndex = eatenColIndex + moveDcol;
+                // break steps new location is out of boards
+                if (isLocationOutOfBoard(newRowIndex, newColIndex))
+                    break;
+                if (isOccupiedByOpponentPlayer(rowIndex, colIndex, eatenRowIndex, eatenColIndex) && isEmptyPlace(newRowIndex, newColIndex)) {
+                    attackList.add(new BoardLocation(eatenRowIndex, eatenColIndex, direction));
+                    // player eat one pawn in each direction maximum in one turn
+                    // for chained attack he continues his turn managed by move functions
+                    break;
+                }
+            }
+        }
+        return attackList;
+    }
+
+    private void clearDeadPawns() {
+        for (int i = 0; i < board.length; i++) {
+            for (int j = 0; j < board[i].length; j++) {
+                if (board[i][j] == DEAD_PAWN)
+                    board[i][j] = EMPTY_PLACE;
+            }
+        }
+    }
+
+    public void clearBoard() {
+        board = new int[tailleBoard + 1][tailleBoard + 1];
+    }
+
+    public boolean didGameOver() {
+        boolean whiteExist = false;
+        boolean blackExist = false;
+        for (int i = 0; i < board.length; i++) {
+            for (int j = 0; j < board[i].length; j++) {
+                if (isWhitePion(i, j))
+                    whiteExist = true;
+                if (isBlackPion(i, j))
+                    blackExist = true;
+            }
+            if (whiteExist && blackExist)
+                break;
+        }
+        if (!whiteExist && blackExist) {
+            System.out.println("Black pawns win!");
+        }
+        if (whiteExist && !blackExist) {
+            System.out.println("White pawns win!");
+        }
+        return !whiteExist || !blackExist;
+    }
+
+    public boolean isOccupiedBySamePlayer(int row1, int col1, int row2, int col2) {
+        return (isWhitePion(row1, col1) && isWhitePion(row2, col2))
+                || (isBlackPion(row1, col1) && isBlackPion(row2, col2));
+    }
+
+    public boolean isOccupiedByOpponentPlayer(int row1, int col1, int row2, int col2) {
+        return (isWhitePion(row1, col1) && isBlackPion(row2, col2))
+                || (isBlackPion(row1, col1) && isWhitePion(row2, col2));
+    }
+
+    public boolean isEmptyPlace(int rowIndex, int colIndex) {
+        return board[rowIndex][colIndex] == EMPTY_PLACE;
+    }
+
+    public boolean isWhitePion(int rowIndex, int colIndex) {
+        return board[rowIndex][colIndex] == WHITE_PAWN || board[rowIndex][colIndex] == WHITE_QUEEN;
+    }
+
+    public boolean isBlackPion(int rowIndex, int colIndex) {
+        return board[rowIndex][colIndex] == BLACK_PAWN || board[rowIndex][colIndex] == BLACK_QUEEN;
+    }
+
+    public boolean isQueenPawn(int rowIndex, int colIndex) {
+        return board[rowIndex][colIndex] == BLACK_QUEEN || board[rowIndex][colIndex] == WHITE_QUEEN;
+    }
+
+    public boolean isNormalPawn(int rowIndex, int colIndex) {
+        return board[rowIndex][colIndex] == BLACK_PAWN || board[rowIndex][colIndex] == WHITE_PAWN;
+    }
+
+    public String prettyPrintLegend() {
+        String st = "* Case vide => -" + "\n" +
+                "* Cadavre  => x" + "\n" +
+                "* Pion noir  => " + BLACK_PAWN + "\n" +
+                "* Dame noire => " + BLACK_QUEEN + "\n" +
+                "* Pion blanc => " + WHITE_PAWN + "\n" +
+                "* Dame blanche => " + WHITE_QUEEN + "\n";
+        return st;
     }
 
     @Override
     public String toString() {
         StringBuilder st = new StringBuilder(board.length * board[0].length);
         // append first line index
-        st.append(getLegend());
         st.append("Board: \n");
         st.append("r\\c ");
         for (int i = 1; i < board.length; i++) {
@@ -60,17 +487,22 @@ public class Board {
         for (int i = 1; i < board.length; i++) {
             st.append(i % 10 + "   ");
             for (int j = 1; j < board[i].length; j++) {
-                st.append(board[i][j]).append(j == board[i].length - 1 ? "" : " ");
+                switch (board[i][j]) {
+                    case EMPTY_PLACE:
+                        st.append("-");
+                        break;
+                    case DEAD_PAWN:
+                        st.append("x");
+                        break;
+                    default:
+                        st.append(board[i][j]);
+                }
+                if (j != board[i].length - 1) {
+                    st.append(" ");
+                }
             }
             st.append("\n");
         }
         return st.toString();
-    }
-
-    public void moveItem(int rowIndex, int colIndex, Integer moveBehaviorDirection) {
-    }
-
-    public boolean isWhitePlayer(Integer rowIndex, Integer colIndex) {
-        return false;
     }
 }
