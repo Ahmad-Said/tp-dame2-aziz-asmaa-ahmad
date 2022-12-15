@@ -43,10 +43,6 @@
 
 5. Pour un joueur à qui c'est le tour de jouer, le fait de toucher une de ses pièces jouables implique l’obligation de jouer cette pièce, pour autant que cela soit possible.
 
-## Déplacement:
-[7	-	9
--	P	-
-1	-	3]
 
 ### La prise
 
