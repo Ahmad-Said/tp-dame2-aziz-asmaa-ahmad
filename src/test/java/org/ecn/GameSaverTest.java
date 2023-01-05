@@ -21,6 +21,6 @@ class GameSaverTest {
             e.printStackTrace();
         }
         // automatically delete file on exit
-        // targetFile.deleteOnExit();
+         targetFile.deleteOnExit();
     }
 }
