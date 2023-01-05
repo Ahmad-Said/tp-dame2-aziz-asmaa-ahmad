@@ -8,7 +8,7 @@ import java.util.stream.Collectors;
 
 public class MoveBehavior {
     private MoveBehavior() {
-        throw new IllegalStateException("Utility class");
+        throw new IllegalStateException("Utility class: " + getClass());
     }
 
     /**

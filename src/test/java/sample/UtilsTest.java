@@ -30,9 +30,7 @@ class UtilsTest {
     void checkExpectedException() {
         System.out.println("checkExpectedException");
         final int factorialOf = -5;
-        Exception exception = assertThrows(IllegalArgumentException.class, () ->
-                //code under test for throwing IllegalArgumentException
-                System.out.println(factorialOf + "! = " + Utils.computeFactorial(factorialOf)));
+        Exception exception = assertThrows(IllegalArgumentException.class, () -> Utils.computeFactorial(factorialOf));
     }
 
     @ParameterizedTest

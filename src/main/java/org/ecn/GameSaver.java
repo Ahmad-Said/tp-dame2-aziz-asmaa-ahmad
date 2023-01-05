@@ -2,14 +2,15 @@ package org.ecn;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import java.io.*;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
+import java.io.File;
+import java.io.IOException;
 
 public class GameSaver {
+
+    private GameSaver() {
+        throw new IllegalStateException("Utility class: " + getClass());
+    }
+
     public static void saveGame(BoardController boardController, File targetFile) throws IOException {
         ObjectMapper mapper = new ObjectMapper();
         // Serialize Java object info JSON file.

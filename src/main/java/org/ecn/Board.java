@@ -6,7 +6,10 @@ import org.ecn.exp.EatObligationException;
 import org.ecn.exp.InvalidDirectionException;
 import org.ecn.exp.OutOfBoardException;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.stream.Collectors;
 
 /**
@@ -156,17 +159,18 @@ public class Board {
             remainingSteps -= minimumJumpedSteps;
             newRowIndex += minimumJumpedSteps * moveDrow;
             newColIndex += minimumJumpedSteps * moveDcol;
-            System.out.println("Opponent eaten at position [" + mustBeEaten.row + ", " + mustBeEaten.col + "] !");
-            boardArray[mustBeEaten.row][mustBeEaten.col] = DEAD_PAWN;
+            System.out.println("Opponent eaten at position [" + mustBeEaten.getRow() + ", " + mustBeEaten.getCol() + "] !");
+            boardArray[mustBeEaten.getRow()][mustBeEaten.getCol()] = DEAD_PAWN;
         }
         // walk with remaining steps as max as possible
-        for (int i = 0; i < remainingSteps; i++) {
+        boolean didMoveOnceInRemaningStep = false;
+        while (remainingSteps-- != 0) {
             int testNextRowIndex = newRowIndex + moveDrow;
             int testNextColIndex = newColIndex + moveDcol;
             // break steps new location is out of boards, or it is not empty
             if (isLocationOutOfBoard(testNextRowIndex, testNextColIndex)) {
-                String errorMessage = "Place [" + testNextRowIndex + ", " + testNextColIndex + "] is out of the board!";
-                if (i == 0) {
+                String errorMessage = BoardLocation.prettyPrint(testNextRowIndex, testNextColIndex) + " is out of the board!";
+                if (!didMoveOnceInRemaningStep) {
                     // step was first move => throw error
                     throw new OutOfBoardException(errorMessage);
                 } else {
@@ -181,13 +185,12 @@ public class Board {
             }
             newRowIndex = testNextRowIndex;
             newColIndex = testNextColIndex;
-            i--;
-            remainingSteps--;
+            didMoveOnceInRemaningStep = true;
         }
         if (remainingSteps != 0) {
             System.err.println("=> Discarding remaining " + remainingSteps + " steps.");
         }
-        System.out.println("Moved to new Place [" + newRowIndex + ", " + newColIndex + "]!");
+        System.out.println("Moved to new " + BoardLocation.prettyPrint(newRowIndex, newColIndex) + "!");
         boardArray[rowIndex][colIndex] = EMPTY_PLACE;
         boardArray[newRowIndex][newColIndex] = pawnToMove;
         // turn end if there is no more eat obligations at the new positions
@@ -242,7 +245,7 @@ public class Board {
 
         boolean doEndTurn = false;
         if (isEmptyPlace(newRowIndex, newColIndex)) {
-            System.out.println("Moved to new Place [" + newRowIndex + ", " + newColIndex + "]!");
+            System.out.println("Moved to new " + BoardLocation.prettyPrint(newRowIndex, newColIndex) + "!");
             boardArray[rowIndex][colIndex] = EMPTY_PLACE;
             boardArray[newRowIndex][newColIndex] = pawnToMove;
             // successful move to empty place => turn go to next player
@@ -253,8 +256,8 @@ public class Board {
                 // note all print on System.err can be elevated as defined exception,
                 // but for the simplicity of project we print the error in the standard error output stream,
                 // and we keep the turn with same player
-                System.err.println("Place [" + newRowIndex + ", " + colIndex + "] already occupied!");
-                doEndTurn = false;
+                System.err.println(BoardLocation.prettyPrint(newRowIndex, newColIndex) + " already occupied!");
+                // do not end turn
             } else if (isOccupiedByOpponentPlayer(rowIndex, colIndex, newRowIndex, newColIndex)) {
                 // position is occupied by opponent player => try to attack
                 if (attackList.contains(new BoardLocation(newRowIndex, newColIndex))) {
@@ -317,7 +320,7 @@ public class Board {
             throws OutOfBoardException {
         // check if position is out of the board
         if (isLocationOutOfBoard(rowIndex, colIndex)) {
-            throw new OutOfBoardException("Place [" + rowIndex + ", " + colIndex + "] is out of the board!");
+            throw new OutOfBoardException(BoardLocation.prettyPrint(rowIndex, colIndex) + " is out of the board!");
         }
     }
 
@@ -404,7 +407,7 @@ public class Board {
                     // the pawn is opponent and can jump over it => we add enemy as possible attack and break the loop
                     // otherwise the pawn is opponent but can't jump over it, a dead pawn, a teammate pawn => do nothing and break the loop.
                     if (isOccupiedByOpponentPlayer(rowIndex, colIndex, eatenRowIndex, eatenColIndex) && isEmptyPlace(newRowIndex, newColIndex)) {
-                        attackList.add(new BoardLocation(eatenRowIndex, eatenColIndex, direction));
+                        attackList.add(new BoardLocation(eatenRowIndex, eatenColIndex));
                         // player eat one pawn in each direction maximum in one turn
                         // for chained attack he continues his turn managed by move functions
                     }
@@ -473,7 +476,7 @@ public class Board {
         }
         if (doPawnsColorExist(true)) {
             return "White pawns win!";
-        }else {
+        } else {
             return "Black pawns win!";
         }
     }
@@ -513,13 +516,12 @@ public class Board {
     }
 
     public static String prettyPrintLegend() {
-        String st = "* Case vide => -" + "\n" +
+        return "* Case vide => -" + "\n" +
                 "* Cadavre  => x" + "\n" +
                 "* Pion noir  => " + BLACK_PAWN + "\n" +
                 "* Dame noire => " + BLACK_QUEEN + "\n" +
                 "* Pion blanc => " + WHITE_PAWN + "\n" +
                 "* Dame blanche => " + WHITE_QUEEN + "\n";
-        return st;
     }
 
     @Override

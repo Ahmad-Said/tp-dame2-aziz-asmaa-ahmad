@@ -7,7 +7,6 @@ import org.ecn.exp.InvalidDirectionException;
 import org.ecn.exp.OutOfBoardException;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * Class to interact with user and change the board
@@ -62,12 +61,11 @@ public class BoardController {
             List<BoardLocation> obligationAttackers = board.getAttackersList(isWhiteTurn);
             System.out.println(board);
             BoardLocation targetItem;
-            if(obligationAttackers.size() != 0) {
+            if(!obligationAttackers.isEmpty()) {
                 System.out.println("!!!!!!!!!!!!!!!!!!!!!!! Time to eat some pawns!!!!!!!!!!!!!!!!!!!!!!!");
             }
             if (obligationAttackers.isEmpty()) {
                 targetItem = pickTargetPion(isWhiteTurn);
-//                targetItem = pickBoardLocationFromList(board.getPawnsList(isWhiteTurn), "Choose Pawn for your next turn");
             } else if (obligationAttackers.size() == 1) {
                 System.out.println("Eat obligation rule, automatically chosen target item.");
                 targetItem = obligationAttackers.get(0);

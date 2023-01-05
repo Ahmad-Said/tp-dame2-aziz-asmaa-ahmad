@@ -9,15 +9,10 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 public class BoardLocation {
-    public int row;
-    public int col;
+    private int row;
+    private int col;
 
     public BoardLocation(int row, int col) {
-        this.row = row;
-        this.col = col;
-    }
-
-    public BoardLocation(int row, int col, int reachedByDirection) {
         this.row = row;
         this.col = col;
     }
@@ -31,6 +26,10 @@ public class BoardLocation {
      */
     public int deduceDirectionFromSource(int rowIndexSource, int colIndexSource) {
         return MoveBehavior.getDirectionFromDxDy(getCol() - colIndexSource, getRow() - rowIndexSource);
+    }
+
+    public static String prettyPrint(int row, int col) {
+        return "Place [" + row + ", " + col + "]";
     }
 
     public int distanceDiagonallyFrom(int rowIndex) {
