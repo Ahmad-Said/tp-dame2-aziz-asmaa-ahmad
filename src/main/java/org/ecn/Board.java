@@ -42,7 +42,7 @@ public class Board {
      */
     public static final List<Integer> ALLOWED_DIRECTIONS = Collections.unmodifiableList(Arrays.asList(1, 3, 7, 9));
 
-    private int[][] board;
+    private int[][] boardArray;
 
     private int tailleBoard;
 
@@ -56,16 +56,16 @@ public class Board {
      * Black pawn are placed on top, and white pawn are placed on bottom.
      */
     private void initializeBoard() {
-        board = new int[tailleBoard + 1][tailleBoard + 1];
+        boardArray = new int[tailleBoard + 1][tailleBoard + 1];
         // i = 0 and j = 0 are discarded to have x/y location same as counting from 1
         // so we can iterate either on <= tailleBoard or on < board.length
-        for (int i = 1; i < board.length; i++) {
-            for (int j = 1; j < board[i].length; j++) {
+        for (int i = 1; i < boardArray.length; i++) {
+            for (int j = 1; j < boardArray[i].length; j++) {
                 if (i <= tailleBoard / 2 - 1 && i % 2 != j % 2) {
-                    board[i][j] = BLACK_PAWN;
+                    boardArray[i][j] = BLACK_PAWN;
                 }
                 if (i >= tailleBoard / 2 + 2 && i % 2 != j % 2) {
-                    board[i][j] = WHITE_PAWN;
+                    boardArray[i][j] = WHITE_PAWN;
                 }
             }
         }
@@ -131,7 +131,7 @@ public class Board {
 
         int moveDrow = MoveBehavior.DIRECTION_TO_DY.get(moveBehaviorDirection);
         int moveDcol = MoveBehavior.DIRECTION_TO_DX.get(moveBehaviorDirection);
-        int pawnToMove = board[rowIndex][colIndex];
+        int pawnToMove = boardArray[rowIndex][colIndex];
         List<BoardLocation> attackList = getAttackPossibilitiesList(rowIndex, colIndex);
         BoardLocation mustBeEaten = attackList.stream().filter(t -> t.deduceDirectionFromSource(rowIndex, colIndex) == moveBehaviorDirection)
                 .findFirst().orElse(null);
@@ -157,7 +157,7 @@ public class Board {
             newRowIndex += minimumJumpedSteps * moveDrow;
             newColIndex += minimumJumpedSteps * moveDcol;
             System.out.println("Opponent eaten at position [" + mustBeEaten.row + ", " + mustBeEaten.col + "] !");
-            board[mustBeEaten.row][mustBeEaten.col] = DEAD_PAWN;
+            boardArray[mustBeEaten.row][mustBeEaten.col] = DEAD_PAWN;
         }
         // walk with remaining steps as max as possible
         for (int i = 0; i < remainingSteps; i++) {
@@ -188,8 +188,8 @@ public class Board {
             System.err.println("=> Discarding remaining " + remainingSteps + " steps.");
         }
         System.out.println("Moved to new Place [" + newRowIndex + ", " + newColIndex + "]!");
-        board[rowIndex][colIndex] = EMPTY_PLACE;
-        board[newRowIndex][newColIndex] = pawnToMove;
+        boardArray[rowIndex][colIndex] = EMPTY_PLACE;
+        boardArray[newRowIndex][newColIndex] = pawnToMove;
         // turn end if there is no more eat obligations at the new positions
         boolean didTurnEnd = getAttackPossibilitiesList(newRowIndex, newColIndex).isEmpty();
 
@@ -222,7 +222,7 @@ public class Board {
 
         int moveDrow = MoveBehavior.DIRECTION_TO_DY.get(moveBehaviorDirection);
         int moveDcol = MoveBehavior.DIRECTION_TO_DX.get(moveBehaviorDirection);
-        int pawnToMove = board[rowIndex][colIndex];
+        int pawnToMove = boardArray[rowIndex][colIndex];
         int newRowIndex = rowIndex + moveDrow;
         int newColIndex = colIndex + moveDcol;
 
@@ -243,8 +243,8 @@ public class Board {
         boolean doEndTurn = false;
         if (isEmptyPlace(newRowIndex, newColIndex)) {
             System.out.println("Moved to new Place [" + newRowIndex + ", " + newColIndex + "]!");
-            board[rowIndex][colIndex] = EMPTY_PLACE;
-            board[newRowIndex][newColIndex] = pawnToMove;
+            boardArray[rowIndex][colIndex] = EMPTY_PLACE;
+            boardArray[newRowIndex][newColIndex] = pawnToMove;
             // successful move to empty place => turn go to next player
             doEndTurn = true;
         } else {
@@ -259,12 +259,12 @@ public class Board {
                 // position is occupied by opponent player => try to attack
                 if (attackList.contains(new BoardLocation(newRowIndex, newColIndex))) {
                     System.out.println("Opponent eaten at position [" + newRowIndex + ", " + newColIndex + "] !");
-                    board[newRowIndex][newColIndex] = DEAD_PAWN;
-                    board[rowIndex][colIndex] = EMPTY_PLACE;
+                    boardArray[newRowIndex][newColIndex] = DEAD_PAWN;
+                    boardArray[rowIndex][colIndex] = EMPTY_PLACE;
                     // jump to next position over eaten Pawn
                     newRowIndex += moveDrow;
                     newColIndex += moveDcol;
-                    board[newRowIndex][newColIndex] = pawnToMove;
+                    boardArray[newRowIndex][newColIndex] = pawnToMove;
                     // turn of player depend on attack chain: if no attack is possible then the turn go to next player
                     // otherwise current player have to choose the next attack position. (controller should notify user of possible attacks)
                     doEndTurn = getAttackPossibilitiesList(newRowIndex, newColIndex).isEmpty();
@@ -281,11 +281,11 @@ public class Board {
             if (isWhitePion(newRowIndex, newColIndex) && newRowIndex == 1) {
                 System.out.println("!!!!!!!!!!!!!!!!!!!!!!! White Queen !!!!!!!!!!!!!!!!!!!!!!!");
                 System.out.println("Congrats! Pawn promoted to White Queen!");
-                board[newRowIndex][newColIndex] = WHITE_QUEEN;
+                boardArray[newRowIndex][newColIndex] = WHITE_QUEEN;
             } else if (isBlackPion(newRowIndex, newColIndex) && newRowIndex == tailleBoard) {
                 System.out.println("!!!!!!!!!!!!!!!!!!!!!!! Black Queen !!!!!!!!!!!!!!!!!!!!!!!");
                 System.out.println("Congrats! Pawn promoted to Black Queen!");
-                board[newRowIndex][newColIndex] = BLACK_QUEEN;
+                boardArray[newRowIndex][newColIndex] = BLACK_QUEEN;
             }
         }
         return doEndTurn;
@@ -335,8 +335,8 @@ public class Board {
      */
     public List<BoardLocation> getPawnsList(boolean isUsingWhitePawns) {
         List<BoardLocation> attackersList = new ArrayList<>();
-        for (int i = 0; i < board.length; i++) {
-            for (int j = 0; j < board[i].length; j++) {
+        for (int i = 0; i < boardArray.length; i++) {
+            for (int j = 0; j < boardArray[i].length; j++) {
                 if (isUsingWhitePawns) {
                     if (isWhitePion(i, j))
                         attackersList.add(new BoardLocation(i, j));
@@ -359,8 +359,8 @@ public class Board {
      */
     public List<BoardLocation> getAttackersList(boolean isUsingWhitePawns) {
         List<BoardLocation> attackersList = new ArrayList<>();
-        for (int i = 0; i < board.length; i++) {
-            for (int j = 0; j < board[i].length; j++) {
+        for (int i = 0; i < boardArray.length; i++) {
+            for (int j = 0; j < boardArray[i].length; j++) {
                 if (isUsingWhitePawns) {
                     if (isWhitePion(i, j) && !getAttackPossibilitiesList(i, j).isEmpty())
                         attackersList.add(new BoardLocation(i, j));
@@ -416,16 +416,16 @@ public class Board {
     }
 
     private void clearDeadPawns() {
-        for (int i = 0; i < board.length; i++) {
-            for (int j = 0; j < board[i].length; j++) {
-                if (board[i][j] == DEAD_PAWN)
-                    board[i][j] = EMPTY_PLACE;
+        for (int i = 0; i < boardArray.length; i++) {
+            for (int j = 0; j < boardArray[i].length; j++) {
+                if (boardArray[i][j] == DEAD_PAWN)
+                    boardArray[i][j] = EMPTY_PLACE;
             }
         }
     }
 
     public void clearBoard() {
-        board = new int[tailleBoard + 1][tailleBoard + 1];
+        boardArray = new int[tailleBoard + 1][tailleBoard + 1];
     }
 
     /**
@@ -451,8 +451,8 @@ public class Board {
      */
     public boolean doPawnsColorExist(boolean isWhiteColor) {
         boolean colorExist = false;
-        for (int i = 0; i < board.length; i++) {
-            for (int j = 0; j < board[i].length; j++) {
+        for (int i = 0; i < boardArray.length; i++) {
+            for (int j = 0; j < boardArray[i].length; j++) {
                 if (isWhiteColor) {
                     if (isWhitePion(i, j))
                         colorExist = true;
@@ -489,27 +489,27 @@ public class Board {
     }
 
     public boolean isEmptyPlace(int rowIndex, int colIndex) {
-        return board[rowIndex][colIndex] == EMPTY_PLACE;
+        return boardArray[rowIndex][colIndex] == EMPTY_PLACE;
     }
 
     public boolean isDeadPawn(int rowIndex, int colIndex) {
-        return board[rowIndex][colIndex] == DEAD_PAWN;
+        return boardArray[rowIndex][colIndex] == DEAD_PAWN;
     }
 
     public boolean isWhitePion(int rowIndex, int colIndex) {
-        return board[rowIndex][colIndex] == WHITE_PAWN || board[rowIndex][colIndex] == WHITE_QUEEN;
+        return boardArray[rowIndex][colIndex] == WHITE_PAWN || boardArray[rowIndex][colIndex] == WHITE_QUEEN;
     }
 
     public boolean isBlackPion(int rowIndex, int colIndex) {
-        return board[rowIndex][colIndex] == BLACK_PAWN || board[rowIndex][colIndex] == BLACK_QUEEN;
+        return boardArray[rowIndex][colIndex] == BLACK_PAWN || boardArray[rowIndex][colIndex] == BLACK_QUEEN;
     }
 
     public boolean isQueenPawn(int rowIndex, int colIndex) {
-        return board[rowIndex][colIndex] == BLACK_QUEEN || board[rowIndex][colIndex] == WHITE_QUEEN;
+        return boardArray[rowIndex][colIndex] == BLACK_QUEEN || boardArray[rowIndex][colIndex] == WHITE_QUEEN;
     }
 
     public boolean isNormalPawn(int rowIndex, int colIndex) {
-        return board[rowIndex][colIndex] == BLACK_PAWN || board[rowIndex][colIndex] == WHITE_PAWN;
+        return boardArray[rowIndex][colIndex] == BLACK_PAWN || boardArray[rowIndex][colIndex] == WHITE_PAWN;
     }
 
     public static String prettyPrintLegend() {
@@ -524,18 +524,18 @@ public class Board {
 
     @Override
     public String toString() {
-        StringBuilder st = new StringBuilder(board.length * board[0].length);
+        StringBuilder st = new StringBuilder(boardArray.length * boardArray[0].length);
         // append first line index
         st.append("Board: \n");
         st.append("r\\c ");
-        for (int i = 1; i < board.length; i++) {
+        for (int i = 1; i < boardArray.length; i++) {
             st.append(i % 10).append(" ");
         }
         st.append("\n");
-        for (int i = 1; i < board.length; i++) {
+        for (int i = 1; i < boardArray.length; i++) {
             st.append(i % 10 + "   ");
-            for (int j = 1; j < board[i].length; j++) {
-                switch (board[i][j]) {
+            for (int j = 1; j < boardArray[i].length; j++) {
+                switch (boardArray[i][j]) {
                     case EMPTY_PLACE:
                         st.append("-");
                         break;
@@ -543,9 +543,9 @@ public class Board {
                         st.append("x");
                         break;
                     default:
-                        st.append(board[i][j]);
+                        st.append(boardArray[i][j]);
                 }
-                if (j != board[i].length - 1) {
+                if (j != boardArray[i].length - 1) {
                     st.append(" ");
                 }
             }

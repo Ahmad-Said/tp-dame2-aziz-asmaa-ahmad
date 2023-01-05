@@ -8,10 +8,10 @@ import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-public class UtilsTest {
+class UtilsTest {
 
     @Test
-    public void testConcatWords() {
+    void testConcatWords() {
         System.out.println("concatWords");
         assertEquals("Hello, world!", Utils.concatWords(new String[]{"Hello", ", ", "world", "!"}));
     }
@@ -19,7 +19,7 @@ public class UtilsTest {
     @Test
     @Timeout(value = 10, unit = TimeUnit.NANOSECONDS)
     @Disabled
-    public void testComputeFactorial() {
+    void testComputeFactorial() {
         System.out.println("computeFactorial");
         final int factorialOf = 1 + (int) (30000 * Math.random());
         System.out.println("computing " + factorialOf + "!");
@@ -27,7 +27,7 @@ public class UtilsTest {
     }
 
     @Test
-    public void checkExpectedException() {
+    void checkExpectedException() {
         System.out.println("checkExpectedException");
         final int factorialOf = -5;
         Exception exception = assertThrows(IllegalArgumentException.class, () ->

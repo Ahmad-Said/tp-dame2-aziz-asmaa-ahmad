@@ -31,8 +31,8 @@ class BoardTest {
         blackQueenCol = 1;
         whitePawnRow = 5;
         whitePawnCol = 5;
-        board.getBoard()[whitePawnRow][whitePawnCol] = Board.WHITE_PAWN;
-        board.getBoard()[blackQueenRow][blackQueenCol] = Board.BLACK_QUEEN;
+        board.getBoardArray()[whitePawnRow][whitePawnCol] = Board.WHITE_PAWN;
+        board.getBoardArray()[blackQueenRow][blackQueenCol] = Board.BLACK_QUEEN;
     }
 
     @AfterEach
@@ -65,7 +65,7 @@ class BoardTest {
         // adding white pawn at top right
         whitePawnRow = 2;
         whitePawnCol = 10;
-        board.getBoard()[whitePawnRow][whitePawnCol] = Board.WHITE_PAWN;
+        board.getBoardArray()[whitePawnRow][whitePawnCol] = Board.WHITE_PAWN;
         System.out.println(board);
         Exception exception;
         try {
@@ -84,8 +84,8 @@ class BoardTest {
             System.out.println("Direction 7 from 2, 10");
             // True -> turn end as no eat obligation is present
             assertTrue(board.moveItem(whitePawnRow, whitePawnCol, 7, 1));
-            assertEquals(Board.EMPTY_PLACE, board.getBoard()[whitePawnRow][whitePawnCol]); // old position is cleared
-            assertEquals(Board.WHITE_QUEEN, board.getBoard()[1][9]); // new position is 1, 9 as white queen
+            assertEquals(Board.EMPTY_PLACE, board.getBoardArray()[whitePawnRow][whitePawnCol]); // old position is cleared
+            assertEquals(Board.WHITE_QUEEN, board.getBoardArray()[1][9]); // new position is 1, 9 as white queen
         } catch (InvalidDirectionException | OutOfBoardException | EatObligationException e) {
             e.printStackTrace();
         }
@@ -97,7 +97,7 @@ class BoardTest {
         try {
             // Eat obligation rules test
             // add black pawn at position 4, 4
-            board.getBoard()[4][4] = Board.BLACK_PAWN;
+            board.getBoardArray()[4][4] = Board.BLACK_PAWN;
             System.out.println(board);
 
             // test to eat added black pawn from 5, 5 location
@@ -109,7 +109,7 @@ class BoardTest {
             // add black pawn at position 3, 3
             System.out.println();
             System.out.println("Adding black pawn at 3,3");
-            board.getBoard()[3][3] = Board.BLACK_PAWN;
+            board.getBoardArray()[3][3] = Board.BLACK_PAWN;
             System.out.println(board);
             // Trying to escape ensuring no more obligation is present as space is blocked by added pawn
             System.out.println("Direction 3 from 5, 5");
@@ -127,9 +127,9 @@ class BoardTest {
             // eating first pawn at position 4, 4
             System.out.println("Direction 7 from 5, 5");
             assertFalse(board.moveItem(whitePawnRow, whitePawnCol, 7, 1));
-            assertEquals(Board.EMPTY_PLACE, board.getBoard()[5][5]);
-            assertEquals(Board.WHITE_PAWN, board.getBoard()[3][3]);
-            assertEquals(Board.DEAD_PAWN, board.getBoard()[4][4]);
+            assertEquals(Board.EMPTY_PLACE, board.getBoardArray()[5][5]);
+            assertEquals(Board.WHITE_PAWN, board.getBoardArray()[3][3]);
+            assertEquals(Board.DEAD_PAWN, board.getBoardArray()[4][4]);
             whitePawnRow = whitePawnCol = 3;
             System.out.println(board);
 
@@ -142,10 +142,10 @@ class BoardTest {
             System.out.println();
             System.out.println("Direction 7 from 3, 3");
             assertTrue(board.moveItem(whitePawnRow, whitePawnCol, 7, 1));
-            assertEquals(Board.EMPTY_PLACE, board.getBoard()[whitePawnRow][whitePawnCol]); // old white pawn location is empty
-            assertEquals(Board.WHITE_QUEEN, board.getBoard()[1][1]); // new white pawn location as well it is promoted to queen on 1, 1
-            assertEquals(Board.EMPTY_PLACE, board.getBoard()[4][2]); // dead pawn is cleared
-            assertEquals(Board.EMPTY_PLACE, board.getBoard()[3][3]); // white pawn is empty
+            assertEquals(Board.EMPTY_PLACE, board.getBoardArray()[whitePawnRow][whitePawnCol]); // old white pawn location is empty
+            assertEquals(Board.WHITE_QUEEN, board.getBoardArray()[1][1]); // new white pawn location as well it is promoted to queen on 1, 1
+            assertEquals(Board.EMPTY_PLACE, board.getBoardArray()[4][2]); // dead pawn is cleared
+            assertEquals(Board.EMPTY_PLACE, board.getBoardArray()[3][3]); // white pawn is empty
             whitePawnRow = whitePawnCol = 1;
         } catch (InvalidDirectionException | OutOfBoardException | EatObligationException e) {
             e.printStackTrace();
@@ -172,8 +172,8 @@ class BoardTest {
             // false = ensure turn did end after moving to place 3, 3
             System.out.println("Direction 9, Steps 2 from 5, 1");
             assertFalse(board.moveItem(blackQueenRow, blackQueenCol, 9, 2));
-            assertEquals(Board.BLACK_QUEEN, board.getBoard()[3][3]);
-            assertEquals(Board.EMPTY_PLACE, board.getBoard()[5][1]);
+            assertEquals(Board.BLACK_QUEEN, board.getBoardArray()[3][3]);
+            assertEquals(Board.EMPTY_PLACE, board.getBoardArray()[5][1]);
             blackQueenRow = blackQueenCol = 3;
             System.out.println(board);
 
@@ -193,8 +193,8 @@ class BoardTest {
             // ensure turn is ended as non more possible enchained eating
             System.out.println("Direction 3, steps 4 from 3, 3");
             assertTrue(board.moveItem(blackQueenRow, blackQueenCol, 3, 4));
-            assertEquals(Board.BLACK_QUEEN, board.getBoard()[7][7]); // black queen is on 7, 7
-            assertEquals(Board.EMPTY_PLACE, board.getBoard()[5][5]); // white pawn is dead
+            assertEquals(Board.BLACK_QUEEN, board.getBoardArray()[7][7]); // black queen is on 7, 7
+            assertEquals(Board.EMPTY_PLACE, board.getBoardArray()[5][5]); // white pawn is dead
             blackQueenRow = blackQueenCol = 7;
             assertTrue(board.didGameOver());
             assertTrue(board.doPawnsColorExist(false));
@@ -208,7 +208,7 @@ class BoardTest {
         // add white pawn at position 4, 2
         // and so chain will be eating 4,2 to 3,3
         // then eating 5,5 to 6,6
-        board.getBoard()[4][2] = Board.WHITE_PAWN;
+        board.getBoardArray()[4][2] = Board.WHITE_PAWN;
         System.out.println(board);
 
         try {
@@ -216,9 +216,9 @@ class BoardTest {
             System.out.println("Direction 9, steps 2 from 5, 1");
             // False => ensure turn remain with same player as enchained eat obligation is present
             assertFalse(board.moveItem(blackQueenRow, blackQueenCol, 9, 2));
-            assertEquals(Board.EMPTY_PLACE, board.getBoard()[5][1]); // old black queen location is empty
-            assertEquals(Board.BLACK_QUEEN, board.getBoard()[3][3]); // black queen is on 3, 3
-            assertEquals(Board.DEAD_PAWN, board.getBoard()[4][2]); // white pawn is dead
+            assertEquals(Board.EMPTY_PLACE, board.getBoardArray()[5][1]); // old black queen location is empty
+            assertEquals(Board.BLACK_QUEEN, board.getBoardArray()[3][3]); // black queen is on 3, 3
+            assertEquals(Board.DEAD_PAWN, board.getBoardArray()[4][2]); // white pawn is dead
             blackQueenRow = blackQueenCol = 3;
             System.out.println(board);
 
@@ -226,10 +226,10 @@ class BoardTest {
             System.out.println("Direction 3, steps 3 from 3, 3");
             // true => ensure turn is ended
             assertTrue(board.moveItem(blackQueenRow, blackQueenCol, 3, 3));
-            assertEquals(Board.EMPTY_PLACE, board.getBoard()[3][3]); // old black queen location is empty
-            assertEquals(Board.BLACK_QUEEN, board.getBoard()[6][6]); // black queen is on 6, 6
-            assertEquals(Board.EMPTY_PLACE, board.getBoard()[4][2]); // dead pawn is cleared
-            assertEquals(Board.EMPTY_PLACE, board.getBoard()[3][3]); // white pawn is empty
+            assertEquals(Board.EMPTY_PLACE, board.getBoardArray()[3][3]); // old black queen location is empty
+            assertEquals(Board.BLACK_QUEEN, board.getBoardArray()[6][6]); // black queen is on 6, 6
+            assertEquals(Board.EMPTY_PLACE, board.getBoardArray()[4][2]); // dead pawn is cleared
+            assertEquals(Board.EMPTY_PLACE, board.getBoardArray()[3][3]); // white pawn is empty
             blackQueenRow = blackQueenCol = 6;
         } catch (InvalidDirectionException | OutOfBoardException | EatObligationException e) {
             e.printStackTrace();

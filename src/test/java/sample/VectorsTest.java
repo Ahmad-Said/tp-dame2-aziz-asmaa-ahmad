@@ -6,7 +6,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class VectorsTest {
     @Test
-    public void testScalarMultiplication() {
+    void testScalarMultiplication() {
         System.out.println("scalarMultiplication");
         assertEquals(  0, Vectors.scalarMultiplication(new int[] { 0, 0}, new int[] { 0, 0}));
         assertEquals( 39, Vectors.scalarMultiplication(new int[] { 3, 4}, new int[] { 5, 6}));
@@ -16,7 +16,7 @@ class VectorsTest {
     }
 
     @Test
-    public void testEqual() {
+    void testEqual() {
         System.out.println("equal");
         assertTrue(Vectors.equal(new int[] {}, new int[] {}));
         assertTrue(Vectors.equal(new int[] {0}, new int[] {0}));
