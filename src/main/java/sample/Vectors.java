@@ -15,7 +15,7 @@ public final class Vectors {
     /**
      * Checks whether the given vectors are equal.
      */
-    public static boolean equal(int[] a, int[] b) {
+    public static boolean isVectorsEquals(int[] a, int[] b) {
         if ((a == null) || (b == null)) {
             throw new IllegalArgumentException("null argument");
         }

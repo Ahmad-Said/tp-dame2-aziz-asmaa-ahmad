@@ -17,24 +17,24 @@ class VectorsTest {
 
     @Test
     void testEqual() {
-        System.out.println("equal");
-        assertTrue(Vectors.equal(new int[] {}, new int[] {}));
-        assertTrue(Vectors.equal(new int[] {0}, new int[] {0}));
-        assertTrue(Vectors.equal(new int[] {0, 0}, new int[] {0, 0}));
-        assertTrue(Vectors.equal(new int[] {0, 0, 0}, new int[] {0, 0, 0}));
-        assertTrue(Vectors.equal(new int[] {5, 6, 7}, new int[] {5, 6, 7}));
+        System.out.println("isVectorsEquals");
+        assertTrue(Vectors.isVectorsEquals(new int[] {}, new int[] {}));
+        assertTrue(Vectors.isVectorsEquals(new int[] {0}, new int[] {0}));
+        assertTrue(Vectors.isVectorsEquals(new int[] {0, 0}, new int[] {0, 0}));
+        assertTrue(Vectors.isVectorsEquals(new int[] {0, 0, 0}, new int[] {0, 0, 0}));
+        assertTrue(Vectors.isVectorsEquals(new int[] {5, 6, 7}, new int[] {5, 6, 7}));
 
-        assertFalse(Vectors.equal(new int[] {}, new int[] {0}));
-        assertFalse(Vectors.equal(new int[] {0}, new int[] {0, 0}));
-        assertFalse(Vectors.equal(new int[] {0, 0}, new int[] {0, 0, 0}));
-        assertFalse(Vectors.equal(new int[] {0, 0, 0}, new int[] {0, 0}));
-        assertFalse(Vectors.equal(new int[] {0, 0}, new int[] {0}));
-        assertFalse(Vectors.equal(new int[] {0}, new int[] {}));
+        assertFalse(Vectors.isVectorsEquals(new int[] {}, new int[] {0}));
+        assertFalse(Vectors.isVectorsEquals(new int[] {0}, new int[] {0, 0}));
+        assertFalse(Vectors.isVectorsEquals(new int[] {0, 0}, new int[] {0, 0, 0}));
+        assertFalse(Vectors.isVectorsEquals(new int[] {0, 0, 0}, new int[] {0, 0}));
+        assertFalse(Vectors.isVectorsEquals(new int[] {0, 0}, new int[] {0}));
+        assertFalse(Vectors.isVectorsEquals(new int[] {0}, new int[] {}));
 
-        assertFalse(Vectors.equal(new int[] {0, 0, 0}, new int[] {0, 0, 1}));
-        assertFalse(Vectors.equal(new int[] {0, 0, 0}, new int[] {0, 1, 0}));
-        assertFalse(Vectors.equal(new int[] {0, 0, 0}, new int[] {1, 0, 0}));
-        assertFalse(Vectors.equal(new int[] {0, 0, 1}, new int[] {0, 0, 3}));
+        assertFalse(Vectors.isVectorsEquals(new int[] {0, 0, 0}, new int[] {0, 0, 1}));
+        assertFalse(Vectors.isVectorsEquals(new int[] {0, 0, 0}, new int[] {0, 1, 0}));
+        assertFalse(Vectors.isVectorsEquals(new int[] {0, 0, 0}, new int[] {1, 0, 0}));
+        assertFalse(Vectors.isVectorsEquals(new int[] {0, 0, 1}, new int[] {0, 0, 3}));
     }
 
 }

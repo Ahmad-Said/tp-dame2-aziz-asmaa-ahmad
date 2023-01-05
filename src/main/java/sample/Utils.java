@@ -29,7 +29,7 @@ public class Utils {
             throw new IllegalArgumentException("zero or negative parameter (" + number + ')');
         }
 
-        BigInteger factorial = new BigInteger("1");
+        BigInteger factorial = BigInteger.valueOf(1);
         for (int i = 2; i <= number; i++) {
             factorial = factorial.multiply(new BigInteger(String.valueOf(i)));
         }

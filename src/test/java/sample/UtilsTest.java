@@ -16,15 +16,15 @@ class UtilsTest {
         assertEquals("Hello, world!", Utils.concatWords(new String[]{"Hello", ", ", "world", "!"}));
     }
 
-    @Test
-    @Timeout(value = 10, unit = TimeUnit.NANOSECONDS)
-    @Disabled
-    void testComputeFactorial() {
-        System.out.println("computeFactorial");
-        final int factorialOf = 1 + (int) (30000 * Math.random());
-        System.out.println("computing " + factorialOf + "!");
-        System.out.println(factorialOf + "! = " + Utils.computeFactorial(factorialOf));
-    }
+//    @Test
+//    @Timeout(value = 10, unit = TimeUnit.NANOSECONDS)
+//    @Disabled
+//    void testComputeFactorial() {
+//        System.out.println("computeFactorial");
+//        final int factorialOf = 1 + (int) (30000 * Math.random());
+//        System.out.println("computing " + factorialOf + "!");
+//        System.out.println(factorialOf + "! = " + Utils.computeFactorial(factorialOf));
+//    }
 
     @Test
     void checkExpectedException() {
