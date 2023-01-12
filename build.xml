@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<project name="Dame_TP6" basedir="." default="build">
+    <description>TP automation</description>
+    <property name="java.src.version" value="1.8"/>
+    <property name="java.target.version" value="1.8"/>
+
+
+    <property name="build.dir" location="build"/>
+    <property name="build.classes.dir" location="${build.dir}/classes"/>
+    <property name="build.test-classes.dir" location="${build.dir}/test-classes"/>
+    <property name="src.main.dir" location="src/main/java"/>
+    <property name="src.test.dir" location="src/test/java"/>
+    <property name="dependencies.dir" location="dependencies"/>
+    <property name="jar.dir" value="${build.dir}/jar"/>
+    <property name="jar.file" value="${jar.dir}/${ant.project.name}.jar"/>
+
+    <target name="checkDependencies"
+            description="Check if dependencies are satisfied">
+
+        <echo message="Source directory is ${src.main.dir}"/>
+
+        <condition property="src.origin.available">
+            <and>
+                <available file="${src.main.dir}" type="dir"/>
+                <available file="${dependencies.dir}" type="dir"/>
+            </and>
+        </condition>
+
+    </target>
+
+    <target name="build"
+            description="Build the application"
+            depends="checkDependencies"
+            if="src.origin.available">
+        <echo message="Building application..."/>
+
+
+        <delete dir="${build.dir}"/>
+        <mkdir dir="${build.classes.dir}"/>
+
+        <javac includeantruntime="false"
+               source="${java.src.version}"
+               target="${java.target.version}"
+               srcdir="${src.main.dir}"
+               destdir="${build.classes.dir}">
+            <classpath>
+                <fileset dir="${dependencies.dir}">
+                    <include name="*"/>
+                </fileset>
+            </classpath>
+        </javac>
+
+        <echo message="Done!"/>
+    </target>
+
+
+    <target name="compile-test" depends="build-jar">
+        <mkdir dir="${build.test-classes.dir}"/>
+        <javac
+                includeantruntime="false"
+                source="${java.src.version}"
+                target="${java.target.version}"
+                srcdir="${src.test.dir}"
+                destdir="${build.test-classes.dir}">
+            <classpath>
+                <fileset dir="${dependencies.dir}">
+                    <include name="**/*"/>
+                </fileset>
+            </classpath>
+            <classpath>
+                <fileset dir="${jar.dir}">
+                    <include name="*"/>
+                </fileset>
+            </classpath>
+        </javac>
+    </target>
+
+    <target name="build-jar" depends="build">
+
+        <jar destfile="${jar.file}"
+             basedir="${build.classes.dir}"
+             includes="**/*"
+             excludes="**/*Test.class"
+        >
+            <manifest>
+                <attribute name="Main-Class" value="org.ecn.Main"/>
+            </manifest>
+        </jar>
+    </target>
+
+
+    <!-- Generate javadocs for current project into ${doc.dir} -->
+    <!-- see https://ant.apache.org/manual/Tasks/javadoc.html   -->
+    <target name="doc" depends="build" description="generate documentation">
+        <property name="doc.location" value="${build.dir}/doc"/>
+        <mkdir dir="${doc.location}"/>
+        <javadoc
+                destdir="${doc.location}"
+        >
+            <packageset dir="src/main/java" defaultexcludes="yes">
+                <include name="**/*"/>
+                <exclude name="**/*Test.java"/>
+            </packageset>
+            <classpath>
+                <fileset dir="${dependencies.dir}">
+                    <include name="*"/>
+                </fileset>
+            </classpath>
+        </javadoc>
+    </target>
+</project>
