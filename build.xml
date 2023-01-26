@@ -14,6 +14,7 @@
     <property name="dependencies.dir" location="dependencies"/>
     <property name="jar.dir" value="${build.dir}/jar"/>
     <property name="jar.file" value="${jar.dir}/${ant.project.name}.jar"/>
+    <property name="jar.mainClass" value="org.ecn.Main"/>
 
     <target name="checkDependencies"
             description="Check if dependencies are satisfied">
@@ -84,7 +85,7 @@
              excludes="**/*Test.class"
         >
             <manifest>
-                <attribute name="Main-Class" value="org.ecn.Main"/>
+                <attribute name="Main-Class" value="${jar.mainClass}"/>
             </manifest>
         </jar>
     </target>
@@ -108,5 +109,39 @@
                 </fileset>
             </classpath>
         </javadoc>
+    </target>
+
+    <target name="test" depends="compile-test">
+        <path id="classpath">
+            <fileset dir="dependencies/test">
+                <include name="ant-junitlauncher-1.10.6.jar"/>
+            </fileset>
+        </path>
+
+        <junitlauncher>
+            <classpath>
+                <fileset dir="${dependencies.dir}">
+                    <include name="**/*"/>
+                </fileset>
+            </classpath>
+
+            <classpath>
+                <!-- the classes of the projects -->
+                <fileset dir="${build.classes.dir}">
+                    <include name="**/*"/>
+                </fileset>
+            </classpath>
+            <classpath>
+                <!-- the test classes themselves -->
+                <fileset dir="${build.test-classes.dir}">
+                    <include name="**/*"/>
+                </fileset>
+            </classpath>
+            <testclasses outputdir="${build.dir}">
+                <fileset dir="${build.test-classes.dir}"/>
+                <listener type="legacy-brief" sendSysOut="true"/>
+                <listener type="legacy-xml" sendSysErr="true" sendSysOut="true"/>
+            </testclasses>
+        </junitlauncher>
     </target>
 </project>
