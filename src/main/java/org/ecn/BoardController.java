@@ -61,7 +61,7 @@ public class BoardController {
             List<BoardLocation> obligationAttackers = board.getAttackersList(isWhiteTurn);
             System.out.println(board);
             BoardLocation targetItem;
-            if(!obligationAttackers.isEmpty()) {
+            if (!obligationAttackers.isEmpty()) {
                 System.out.println("!!!!!!!!!!!!!!!!!!!!!!! Time to eat some pawns!!!!!!!!!!!!!!!!!!!!!!!");
             }
             if (obligationAttackers.isEmpty()) {
@@ -135,13 +135,12 @@ public class BoardController {
      *     - P -
      *     1 - 3
      *
-     *     After choosing direction, user has to input the steps to move if it was a Queen item.
-     * </pre>
-     *
-     * @param rowIndex the target row item to move
-     * @param colIndex the target column item to move
-     * @return <code>true</code> if move was successful and turn swap to other player <br/>
-     * <code>false</code> if move wasn't successful (ex.occupied case) or player is forced to continue his turn (such as Queen enchained eating)
+     * @param rowIndex the row index of the item to be moved
+     * @param colIndex the column index of the item to be moved
+     * @return a boolean value indicating if the move was successful
+     * @throws InvalidDirectionException if the chosen direction is not one of the allowed diagonal directions (1, 3, 7, 9)
+     * @throws OutOfBoardException       if the move goes out of the board
+     * @throws EatObligationException    if the move results in an obligation to eat
      */
     public boolean moveItem(Integer rowIndex, Integer colIndex)
             throws InvalidDirectionException, OutOfBoardException, EatObligationException {
